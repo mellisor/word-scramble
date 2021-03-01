@@ -18,6 +18,7 @@ func main() {
 	input := flag.String("input", "words.json", "Input word file")
 	flag.Parse()
 
+	// Create the game's options
 	options := scramble.Options{
 		WordCount:      *count,
 		AllowBackwards: *backwards,
@@ -27,15 +28,19 @@ func main() {
 		MinWordLength:  *minLength,
 		AllowDiagonals: *diagonals,
 	}
+
+	// Load words and generate the board
 	scramble.LoadWords(*input)
 	board, err := scramble.GenerateBoard(options)
 
+	// Print error and exit if something went wrong
 	if err != nil {
 		println(err.Error())
 		os.Exit(3)
 	}
+	
+	// Print board and words
 	board.Print()
-
 	words := board.GetWords()
 	for i := range words {
 		println(words[i])
