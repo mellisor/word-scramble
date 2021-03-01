@@ -5,7 +5,7 @@ import json
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument('-u', '--url', required=True)
+parser.add_argument('url')
 parser.add_argument('-o', '--output', default='output.json')
 
 args = parser.parse_args()
@@ -17,6 +17,7 @@ text = soup.get_text().split()
 words = set()
 
 for word in text:
+    word = word.lower()
     valid = True
     for char in word:
         if ord(char) < 97 or ord(char) > 122:
