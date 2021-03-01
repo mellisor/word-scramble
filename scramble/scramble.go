@@ -7,7 +7,10 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"os"
+	"sort"
 	"time"
+
+	"github.com/fatih/color"
 )
 
 var words []string
@@ -32,27 +35,69 @@ type Options struct {
 	MinWordLength  int
 	AllowDiagonals bool
 	Seed           int64
+	Cheat          bool
+}
+
+type space struct {
+	letter byte
+	used   bool
 }
 
 // Puzzle contains state of the game
 type Puzzle struct {
-	board   [][]byte
+	board   [][]space
 	Options *Options
 	words   []string
 }
 
 // Print prints the board
 func (p Puzzle) Print() {
+	cheatPrinter := color.New(color.FgYellow)
 	for y := 0; y < len(p.board[0]); y++ {
 		for x := range p.board {
-			print(string(p.board[x][y]), " ")
+			str := string(p.board[x][y].letter) + " "
+			if p.Options.Cheat && p.board[x][y].used {
+				cheatPrinter.Print(str)
+			} else {
+				print(str)
+			}
 		}
 		println()
 	}
 }
 
+func pad(word string, size int) string {
+	padded := word
+	for len(padded) < size {
+		padded = padded + " "
+	}
+	return padded
+}
+
+// PrintWords handles the printing of words nicely
+func (p Puzzle) PrintWords(columns int) {
+	c := color.New(color.Underline)
+
+	colWidth := p.Options.MaxWordLength + 1
+	boardWords := p.GetWords()
+	c.Printf("\n%d Words\n", len(boardWords))
+	n := 0
+	for _, v := range boardWords {
+		if n >= columns {
+			println();
+			n = 0
+		}
+
+		print(pad(v, colWidth))
+		n++
+	}
+
+	color.Yellow("\nSeed: %d", p.Options.Seed)
+}
+
 // GetWords gets the list of available words
 func (p Puzzle) GetWords() []string {
+	sort.Strings(p.words)
 	return p.words
 }
 
@@ -78,7 +123,7 @@ func (p Puzzle) getOpenSpaces(word string, d direction) ([]int, []int) {
 			tempY := y
 			success := true
 			for curr := range word {
-				boardValue := p.board[tempX][tempY]
+				boardValue := p.board[tempX][tempY].letter
 				char := word[curr]
 
 				// If the current value is non-default and doesn't match this letter, not a match
@@ -177,7 +222,11 @@ func (p *Puzzle) populateBoard() error {
 		x := xChoices[choice]
 		y := yChoices[choice]
 		for i := range boardWord {
-			p.board[x][y] = boardWord[i]
+			newSpace := space{
+				letter: boardWord[i],
+				used:   true,
+			}
+			p.board[x][y] = newSpace
 			if d != vertical {
 				x++
 			}
@@ -190,8 +239,12 @@ func (p *Puzzle) populateBoard() error {
 	// Fill in the rest of the spaces
 	for i := 0; i < p.Options.Width; i++ {
 		for j := 0; j < p.Options.Height; j++ {
-			if p.board[i][j] == baseValue {
-				p.board[i][j] = byte(rand.Intn(26) + 97)
+			if p.board[i][j].letter == baseValue {
+				newSpace := space{
+					letter: byte(rand.Intn(26) + 97),
+					used:   false,
+				}
+				p.board[i][j] = newSpace
 			}
 		}
 	}
@@ -222,9 +275,9 @@ func New(options Options) (Puzzle, error) {
 	}
 
 	// Make the board
-	a := make([][]byte, options.Width)
+	a := make([][]space, options.Width)
 	for i := range a {
-		a[i] = make([]byte, options.Height)
+		a[i] = make([]space, options.Height)
 	}
 
 	// Declare the puzzle

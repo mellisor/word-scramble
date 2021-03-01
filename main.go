@@ -4,7 +4,6 @@ import (
 	"flag"
 	"os"
 	"scramble/scramble"
-	"github.com/fatih/color"
 )
 
 func main() {
@@ -18,6 +17,8 @@ func main() {
 	diagonals := flag.Bool("noDiagonals", true, "Prevent diagonals")
 	input := flag.String("input", "words.json", "Input word file")
 	seed := flag.Int64("seed", 0, "Puzzle seed")
+	cheat := flag.Bool("cheat", false, "Show words")
+	columns := flag.Int("columns", 3, "Number of columns to print")
 	flag.Parse()
 
 	// Create the game's options
@@ -30,6 +31,7 @@ func main() {
 		MinWordLength:  *minLength,
 		AllowDiagonals: *diagonals,
 		Seed:           *seed,
+		Cheat:          *cheat,
 	}
 
 	// Load words and generate the board
@@ -44,11 +46,5 @@ func main() {
 
 	// Print board and words
 	board.Print()
-	c := color.New(color.Underline)
-	c.Println("\nWords")
-	for _, v := range board.GetWords() {
-		println(v)
-	}
-
-	color.Yellow("\nSeed: %d", board.Options.Seed)
+	board.PrintWords(*columns)
 }
