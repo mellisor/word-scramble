@@ -31,7 +31,7 @@ func main() {
 
 	// Load words and generate the board
 	scramble.LoadWords(*input)
-	board, err := scramble.GenerateBoard(options)
+	board, err := scramble.New(options)
 
 	// Print error and exit if something went wrong
 	if err != nil {

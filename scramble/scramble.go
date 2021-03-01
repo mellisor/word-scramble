@@ -13,21 +13,13 @@ import (
 var words []string
 var baseValue = byte(0)
 
-// LoadWords loads words for the puzzle from the specified file
-func LoadWords(file string) {
-
-	f, err := os.Open(file)
-
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	defer f.Close()
-
-	data, err := ioutil.ReadAll(f)
-
-	err = json.Unmarshal([]byte(data), &words)
-}
+// Indicates the direction a word is running
+type direction int
+const (
+	horizontal direction = 0
+	vertical             = 1
+	diagonal             = 2
+)
 
 // Options contains options for board configuration
 type Options struct {
@@ -41,7 +33,7 @@ type Options struct {
 	AllowDiagonals bool
 }
 
-// Puzzle contains state of crossword board
+// Puzzle contains state of the game
 type Puzzle struct {
 	Board   [][]byte
 	Options Options
@@ -66,14 +58,6 @@ func (p Puzzle) GetWords() []string {
 	}
 	return words
 }
-
-type direction int
-
-const (
-	horizontal direction = 0
-	vertical             = 1
-	diagonal             = 2
-)
 
 // Get all available spots a word can be placed
 func (p Puzzle) getOpenSpaces(word string, d direction) ([]int, []int) {
@@ -212,15 +196,15 @@ func (p Puzzle) populateBoard() error {
 	return nil
 }
 
-// GenerateBoard returns a board using given the options
-func GenerateBoard(options Options) (Puzzle, error) {
+// New returns a board using given the options
+func New(options Options) (Puzzle, error) {
 
 	var puzzle Puzzle
 	var e error
 
 	// Evaluate options
 	if options.MaxWordLength > options.Height && options.MaxWordLength > options.Width {
-		e = errors.New("Max word length exceeds board height")
+		e = errors.New("Max word length exceeds board dimensions")
 	} else if options.Height < 1 || options.Width < 1 {
 		e = errors.New("Invalid board dimensions")
 	} else if options.WordCount < 1 {
@@ -249,4 +233,18 @@ func GenerateBoard(options Options) (Puzzle, error) {
 	e = puzzle.populateBoard()
 
 	return puzzle, e
+}
+
+// LoadWords loads words for the puzzle from the specified file
+func LoadWords(file string) {
+
+	f, err := os.Open(file)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	defer f.Close()
+	data, _ := ioutil.ReadAll(f)
+	json.Unmarshal([]byte(data), &words)
 }
