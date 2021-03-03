@@ -102,54 +102,61 @@ func (p Puzzle) GetWords() []string {
 }
 
 // Get all available spots a word can be placed
-func (p Puzzle) getOpenSpaces(word string, d direction) ([]int, []int) {
+func (p Puzzle) getOpenSpaces(word string) ([]int, []int, []direction) {
 	xChoices := make([]int, 0)
 	yChoices := make([]int, 0)
-
-	// Get the maximum x and y coordinate this word can be placed
-	maxX := p.Options.Width - 1
-	maxY := p.Options.Height - 1
-	if d != vertical {
-		maxX = maxX - len(word) + 1
+	dChoices := make([]direction, 0)
+	directions := []direction { horizontal, vertical }
+	if (p.Options.AllowDiagonals) {
+		directions = append(directions, diagonal)
 	}
-	if d != horizontal {
-		maxY = maxY - len(word) + 1
-	}
+	for _, d := range directions {
+		// Get the maximum x and y coordinate this word can be placed
+		maxX := p.Options.Width - 1
+		maxY := p.Options.Height - 1
+		if d != vertical {
+			maxX = maxX - len(word) + 1
+		}
+		if d != horizontal {
+			maxY = maxY - len(word) + 1
+		}
 
-	// Evaluate each location to see if there is a fit
-	for x := 0; x <= maxX; x++ {
-		for y := 0; y <= maxY; y++ {
-			tempX := x
-			tempY := y
-			success := true
-			for curr := range word {
-				boardValue := p.board[tempX][tempY].letter
-				char := word[curr]
+		// Evaluate each location to see if there is a fit
+		for x := 0; x <= maxX; x++ {
+			for y := 0; y <= maxY; y++ {
+				tempX := x
+				tempY := y
+				success := true
+				for curr := range word {
+					boardValue := p.board[tempX][tempY].letter
+					char := word[curr]
 
-				// If the current value is non-default and doesn't match this letter, not a match
-				if boardValue != baseValue && char != boardValue {
-					success = false
-					break
+					// If the current value is non-default and doesn't match this letter, not a match
+					if boardValue != baseValue && char != boardValue {
+						success = false
+						break
+					}
+
+					// Iterate indices
+					if d != vertical {
+						tempX++
+					}
+					if d != horizontal {
+						tempY++
+					}
 				}
 
-				// Iterate indices
-				if d != vertical {
-					tempX++
+				// Append to choices if successful
+				if success {
+					xChoices = append(xChoices, x)
+					yChoices = append(yChoices, y)
+					dChoices = append(dChoices, d)
 				}
-				if d != horizontal {
-					tempY++
-				}
+
 			}
-
-			// Append to choices if successful
-			if success {
-				xChoices = append(xChoices, x)
-				yChoices = append(yChoices, y)
-			}
-
 		}
 	}
-	return xChoices, yChoices
+	return xChoices, yChoices, dChoices
 }
 
 func (p *Puzzle) populateBoard() error {
@@ -187,20 +194,6 @@ func (p *Puzzle) populateBoard() error {
 		availableWords[index], availableWords[len(availableWords)-1] = availableWords[len(availableWords)-1], availableWords[index]
 		availableWords = availableWords[:len(availableWords)-1]
 
-		// Determine the direction of the word
-		var d direction
-		if len(word) > p.Options.Height {
-			d = horizontal
-		} else if len(word) > p.Options.Width {
-			d = vertical
-		} else {
-			if p.Options.AllowDiagonals {
-				d = direction(rand.Intn(3))
-			} else {
-				d = direction(rand.Intn(2))
-			}
-		}
-
 		// Determine whether the word is forwards or backwards
 		boardWord := word
 		if p.Options.AllowBackwards && rand.Intn(2) == 1 {
@@ -211,7 +204,7 @@ func (p *Puzzle) populateBoard() error {
 		}
 
 		// Get the available spots for this word. If there are none, continue
-		xChoices, yChoices := p.getOpenSpaces(boardWord, d)
+		xChoices, yChoices, directions := p.getOpenSpaces(boardWord)
 		if len(xChoices) == 0 {
 			continue
 		}
@@ -221,6 +214,8 @@ func (p *Puzzle) populateBoard() error {
 		choice := rand.Intn(len(xChoices))
 		x := xChoices[choice]
 		y := yChoices[choice]
+		d := directions[choice]
+		
 		for i := range boardWord {
 			newSpace := space{
 				letter: boardWord[i],
